@@ -2,30 +2,37 @@
 % Please edit documentation in R/textrank.R
 \name{textrank}
 \alias{textrank}
-\title{Textrank - extract relevant sentences and keywords}
+\title{Textrank - extract relevant sentences}
 \usage{
-textrank(data, terminology, method = textrank_dist, max = 1000,
-  options_pagerank = list(directed = FALSE), ...)
+textrank(data, terminology, textrank_dist = textrank_jaccard,
+  textrank_candidates = textrank_candidates_all(data$textrank_id),
+  max = 1000, options_pagerank = list(directed = FALSE), ...)
 }
 \arguments{
 \item{data}{a data.frame with 1 row per sentence where the first column
 is an identifier of a sentence (e.g. textrank_id) and the second column is the raw sentence. See the example.}
 
-\item{terminology}{a data.frame with tokens which are part of the sentence. Where the first column
-is the identifier which corresponds to the first column of \code{data} and the second column indicates
-the token which is part of the sentence. See the example.}
+\item{terminology}{a data.frame with with one row per token indicating which token is part of each sentence.
+The first column in this data.frame is the identifier which corresponds to the first column of \code{data}
+and the second column indicates the token which is part of the sentence which will be passed on to \code{textrank_dist}.
+See the example.}
 
-\item{method}{a function which calculates the distance between 2 vectors of tokens. The first 2 arguments of the function
-are the tokens in sentence1 and sentence2. The function should return a numeric value of length one. The larger the value,
-the larger the connection between the 2 vectors indicating more strength. Defaults to the jaccard distance,
-indicating the percent of common tokens. For a large number of sentences, you might be interested in looking at the minhash algorithm
-which is part of the textreuse package.}
+\item{textrank_dist}{a function which calculates the distance between 2 sentences which are represented by a vectors of tokens.
+The first 2 arguments of the function are the tokens in sentence1 and sentence2.
+The function should return a numeric value of length one. The larger the value,
+the larger the connection between the 2 vectors indicating more strength. Defaults to the jaccard distance (\code{\link{textrank_jaccard}}),
+indicating the percent of common tokens.}
 
-\item{max}{integer indicating to reduce the number of sentence to sentence combinations to compute.}
+\item{textrank_candidates}{a data.frame of candidate sentence to sentence comparisons with columns textrank_id_1 and textrank_id_2
+indicating for which combination of sentences we want to compute the Jaccard distance or the distance function as provided in \code{textrank_dist}.
+See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_candidates_lsh}}.}
+
+\item{max}{integer indicating to reduce the number of sentence to sentence combinations to compute.
+In case provided, we take only this max amount of rows from \code{textrank_candidates}}
 
 \item{options_pagerank}{a list of arguments passed on to \code{\link[igraph]{page_rank}}}
 
-\item{...}{arguments passed on to \code{method}}
+\item{...}{arguments passed on to \code{textrank_dist}}
 }
 \value{
 an object of class textrank
@@ -38,17 +45,19 @@ is the result of the computed distance between the 2 sentences
 }
 }
 \description{
-The textrank algorithm is a technique to rank sentences in order of importance and can also be used to
-identify the most relevant keywords or key phrases in text.\cr
+The textrank algorithm is a technique to rank sentences in order of importance.\cr
 
 In order to find relevant sentences, the textrank algorithm needs 2 inputs:
 a data.frame (\code{data}) with sentences and a data.frame (\code{terminology})
 containing tokens which are part of each sentence.\cr
 Based on these 2 datasets, it calculates the pairwise distance between each sentence by computing
-how many terms are overlapping (Jaccard distance). These pairwise distances among the sentences are next passed on to
-Google's pagerank algorithm to identify the most relevant sentences.\cr\cr
+how many terms are overlapping (Jaccard distance, implemented in \code{\link{textrank_jaccard}}).
+These pairwise distances among the sentences are next passed on to Google's pagerank algorithm
+to identify the most relevant sentences.\cr
 
-For extracting keywords the flow is similar, but is still under construction
+If \code{data} contains many sentences, it makes sense not to compute all pairwise sentence distances but instead limiting
+the calculation of the Jaccard distance to only sentence combinations which are limited by the Minhash algorithm.
+This is implemented in \code{\link{textrank_candidates_lsh}} and an example is show below.
 }
 \examples{
 data(joboffer)
@@ -63,7 +72,19 @@ head(terminology)
 tr <- textrank(data = sentences, terminology = terminology)
 summary(tr, n = 2)
 summary(tr, n = 5, keep.sentence.order = TRUE)
+
+## Using minhash to reduce sentence combinations - relevant if you have a lot of sentences
+library(textreuse)
+minhash <- minhash_generator(n = 1000, seed = 123456789)
+candidates <- textrank_candidates_lsh(x = terminology$lemma, sentence_id = terminology$sentence_id,
+                                      minhashFUN = minhash, bands = 500)
+tr <- textrank(data = sentences, terminology = terminology, textrank_candidates = candidates)
+summary(tr, n = 2)
+
+## You can also reduce the number of sentence combinations by sampling
+tr <- textrank(data = sentences, terminology = terminology, max = 100)
+summary(tr, n = 2)
 }
 \seealso{
-\code{\link[igraph]{page_rank}}
+\code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}
 }

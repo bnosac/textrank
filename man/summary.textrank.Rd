@@ -2,7 +2,7 @@
 % Please edit documentation in R/textrank.R
 \name{summary.textrank}
 \alias{summary.textrank}
-\title{Extract the most important sentences}
+\title{Extract the most important sentences which were identified with textrank}
 \usage{
 \method{summary}{textrank}(object, n = 3, keep.sentence.order = FALSE, ...)
 }
@@ -11,8 +11,9 @@
 
 \item{n}{integer indicating to extract only the top n sentences}
 
-\item{keep.sentence.order}{logical indicating to keep the sentence order in the original \code{data} element of the \code{\link{textrank}} function
-or to order it by the pagerank score. Defaults to FALSE - order by pagerank score}
+\item{keep.sentence.order}{logical indicating to keep the sentence order as provided
+in the original \code{data} argument of the \code{\link{textrank}} function
+or to order it by the pagerank score. Defaults to FALSE indicating to order by pagerank score.}
 
 \item{...}{not used}
 }

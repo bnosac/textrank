@@ -1,15 +1,15 @@
 Package: textrank
 Type: Package
-Title: Summarising text by finding relevance sentences and keywords
+Title: Summarize Text by Ranking Sentences
 Version: 0.1.0
-Author: Jan Wijffels
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
-Authors@R: c(person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be'), 
-    person('BNOSAC', role = 'cph'))
-Description: The textrank algorithm is an extension of Google's 'Pagerank' algorithm for text. 
-    The algorithm allows to summarise text by extracting the most relevant sentences and also finds relevant key words or key phrases in the text.
+Author: Jan Wijffels [aut, cre, cph], BNOSAC [cph]
+Authors@R: c(person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be'), person('BNOSAC', role = 'cph'))
+Description: The 'textrank' algorithm is an extension of the 'Pagerank' algorithm for text. The algorithm allows to summarize text by calculating how sentences are related to one another. This is done by looking at overlapping terminology used in sentences in order to set up links between sentences. The resulting sentence network is next plugged into the 'Pagerank' algorithm which identifies the most important sentences in your text and ranks them.
 License: MPL-2.0
 URL: https://github.com/bnosac/textrank
 Encoding: UTF-8
-Imports: utils, data.table (>= 1.9.6), igraph
+Imports: utils, data.table (>= 1.9.6), igraph, digest
+Suggests: textreuse, knitr
 RoxygenNote: 6.0.1
+VignetteBuilder: knitr

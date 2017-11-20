@@ -1,0 +1,127 @@
+---
+title: "Textrank for summarizing text"
+author: "Jan Wijffels"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    fig_caption: false
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Textrank for summarizing text}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE, cache=FALSE}
+options(width = 1000)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, comment = NA, eval = TRUE)
+```
+
+## Textrank
+
+TextRank – is a graph-based ranking model for text processing which can be used in order to find the most relevant sentences in text. The algorithm is explained in detail in the paper at https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf
+
+In order to find the most relevant sentences in text, a graph is constructed where the vertices of the graph represent each sentence in a document and the edges between sentences are based on content overlap, namely by calculating the number of words that 2 sentences have in common.
+
+Based on this network of sentences, the sentences are fed into the Pagerank algorithm which identifies the most important sentences. When we want to extract a summary of the text, we can now take only the most important sentences. 
+
+## Usage
+
+### Example text
+
+To show how you can apply textrank, the package includes a job description, which is printed below. We want to extract the most important sentences in the job description.
+
+```{r}
+library(textrank)
+data(joboffer)
+cat(unique(joboffer$sentence), sep = "\n")
+```
+
+### Define terminology
+
+In order to apply textrank, we need to feed the function 
+- a data.frame with sentences and 
+- a data.frame with tokens which correspond to each sentence. 
+
+The algorithm basically computes weights between sentences by looking which words are overlapping. 
+
+You probably do not want to look for overlap in words like 'the', 'and', 'or', ...
+That is why, most of the time you probably will have already executed some Parts of Speech tagging in order to identify nouns, verbs, adjectives, ... or you might have set up your own dictionary of words which you want to consider to find overlap between sentences. 
+
+In the example on the joboffer, we did Parts of Speech tagging using the udpipe R package (https://github.com/bnosac/udpipe) so that we have a sentence identifier and a parts of speech tag for each word in the job offer.
+
+```{r}
+head(joboffer[, c("sentence_id", "lemma", "upos")], 10)
+```
+
+### Applying textrank
+
+The textrank algorithm requires 2 inputs: 
+- a data.frame with sentences and 
+- a data.frame with words which are part of each sentence. 
+
+In the following example, we take only nouns and adjectives.
+
+```{r}
+sentences <- unique(joboffer[, c("sentence_id", "sentence")])
+terminology <- subset(joboffer, upos %in% c("NOUN", "ADJ"))
+terminology <- terminology[, c("sentence_id", "lemma")]
+head(terminology)
+```
+
+When applying `textrank` it looks for word (nouns/adjectives in this case) which are the same in sentences and next applies Google Pagerank on the sentence network. The result is an object of class textrank which contains the sentences, the links between the sentences and the result of Google's Pagerank. 
+
+```{r}
+## Textrank for finding the most relevant sentences
+tr <- textrank(data = sentences, terminology = terminology)
+names(tr)
+plot(sort(tr$pagerank$vector, decreasing = TRUE), type = "b", ylab = "Pagerank", main = "Textrank")
+```
+
+Using the summary function, we can extract the top n most relevant sentences. By default it gives the sentences in order of Pagerank importance but you can also get the n most important sentences and keep the sentence order as provided in the original sentences data.frame.
+
+```{r}
+s <- summary(tr, n = 4)
+s <- summary(tr, n = 4, keep.sentence.order = TRUE)
+cat(s, sep = "\n")
+```
+
+Mark that the `textrank` function has a `textrank_dist` argument, which allows you to provide any distance type of calculation you prefer. This can e.g. be used to change the distance calculation to something based on word vectors if you like, based on Levenshtein distances, functions from the textreuse package, based on stemming or any complex calculation you prefer.
+
+### Minhash
+
+In the above example, there were 37 sentences. Which gives 666 combinations of sentences to calculate word overlap. If you have a large number of sentences, this becomes computationally unfeasible. 
+
+That is why you can provide in the argument `textrank_candidates` a data.frame with sentence combinations for which you want to compute the Jaccard distance. This can be used for example to reduce the number of sentence combinations by applying the Minhash algorithm as shown below. 
+
+The result is a you saving computation time. For good settings on `n` and `bands` which should be set in conjunction with the `textrank_dist` function, have a look at the vignette of the textreuse package.
+
+```{r}
+## Limit the number of candidates with the minhash algorithm
+library(textreuse)
+minhash <- minhash_generator(n = 1000, seed = 123456789)
+candidates <- textrank_candidates_lsh(x = terminology$lemma, 
+                                      sentence_id = terminology$sentence_id,
+                                      minhashFUN = minhash, 
+                                      bands = 500)
+dim(candidates)
+head(candidates)
+```
+
+```{r}
+tr <- textrank(data = sentences, terminology = terminology, textrank_candidates = candidates)
+s <- summary(tr, n = 4, keep.sentence.order = TRUE)
+cat(s, sep = "\n")
+```
+
+
+
+## Support in text mining
+
+Need support in text mining. 
+Contact BNOSAC: http://www.bnosac.be
