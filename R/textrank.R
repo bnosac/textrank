@@ -251,3 +251,82 @@ summary.textrank <- function(object, n = 3, keep.sentence.order = FALSE, ...){
 }
 
 
+next_word <- function(x, n){
+  data.table::shift(x, n = as.integer(n), type = "lead")
+}
+
+
+#' @title Textrank - extract relevant keywords
+#' @description Textrank - extract relevant keywords
+#' @param x a character vector of words
+#' @param is_relevant a logical vector indicating if the word is relevant or not
+#' @param p percentage of relevant words to keep
+#' @param ngram_max maximum ngram
+#' @param sep separator
+#' @return Under construction. Will change soon
+#' @export
+#' @seealso \code{\link{textrank}}
+#' @examples
+#' data(joboffer)
+#' keywords <- textrank_keywords(joboffer$lemma, joboffer$upos %in% c("NOUN", "VERB", "ADJ"))
+#' subset(keywords, ngram > 1)
+textrank_keywords <- function(x, is_relevant, p=1/3, ngram_max=5, sep = "-"){
+  stopifnot(length(x) == length(is_relevant))
+  stopifnot(is.logical(is_relevant))
+
+
+  term_adjacency <- function (x, is_relevant, order = TRUE, ...) {
+    cooc <- weight <- term1 <- term2 <- NULL
+    result <- data.table(term1 = x,
+                         term2 = next_word(x, n = 1), n = 1L)
+    result <- result[!is.na(term1) & !is.na(term2) &
+                       is_relevant %in% TRUE & next_word(is_relevant, n = 1) %in% TRUE, ]
+    result <- result[, list(weight = sum(n)), by = list(term1, term2)]
+    if (order) {
+      result <- result[order(weight, decreasing = TRUE), ]
+    }
+    result
+  }
+
+  ## Identify word network by looking at which words are followed by one another
+  ## On that network apply Google pagerank
+  data <- term_adjacency(x, is_relevant)
+  wordgraph <- igraph::graph_from_data_frame(data, directed = FALSE)
+  pr <- igraph::page_rank(graph = wordgraph)
+
+  ## Keep by default 1/3 of the words in the network which have the highest pagerank
+  keep_nr <- igraph::vcount(wordgraph) * p
+  keep_nr <- ceiling(keep_nr)
+  keywords <- sort(pr$vector, decreasing = TRUE)
+  keywords <- head(keywords, keep_nr)
+  keywords <- names(keywords)
+
+  ## extract keyword combinations: keywords which are followed by another keyword
+  output_per_ngram <- list()
+  keywordcombinations <- data.frame(keyword = ifelse(x %in% keywords, x, NA_character_),
+                                    ngram = 1L,
+                                    stringsAsFactors = FALSE)
+  stop_already <- is.na(keywordcombinations$keyword)
+  output_per_ngram[[1]] <- keywordcombinations
+  for(i in 2:ngram_max){
+    nextterm <- next_word(x, n=i-1)
+    nextterm <- ifelse(nextterm %in% keywords, nextterm, NA_character_)
+    stop_already[which(is.na(nextterm))] <- TRUE
+    if(sum(stop_already) ==  length(stop_already)){
+      break
+    }
+    keywordcombinations$keyword <- ifelse(stop_already, keywordcombinations$keyword, paste(keywordcombinations$keyword, nextterm, sep = sep))
+    keywordcombinations$ngram <- ifelse(stop_already, keywordcombinations$ngram, keywordcombinations$ngram + 1L)
+    output_per_ngram[[i]] <- keywordcombinations[keywordcombinations$ngram == i, ]
+  }
+  output_per_ngram <- lapply(output_per_ngram, FUN=function(x){
+    x <- setDT(x)
+    x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
+    x <- x[order(freq, decreasing=TRUE), ]
+    x <- setDF(x)
+    x
+  })
+  output_per_ngram <- data.table::rbindlist(output_per_ngram)
+  output_per_ngram
+}
+
