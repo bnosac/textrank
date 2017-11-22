@@ -4,30 +4,44 @@
 \alias{textrank_keywords}
 \title{Textrank - extract relevant keywords}
 \usage{
-textrank_keywords(x, is_relevant, p = 1/3, ngram_max = 5, sep = "-")
+textrank_keywords(x, relevant = rep(TRUE, length(x)), p = 1/3,
+  ngram_max = 5, sep = "-")
 }
 \arguments{
-\item{x}{a character vector of words}
+\item{x}{a character vector of words.}
 
-\item{is_relevant}{a logical vector indicating if the word is relevant or not}
+\item{relevant}{a logical vector indicating if the word is relevant or not. In the standard textrank
+algorithm, this is normally done by doing a Parts of Speech tagging and selecting which of the words are
+nouns and adjectives.}
 
-\item{p}{percentage of relevant words to keep}
+\item{p}{percentage (between 0 and 1) of relevant words to keep. Defaults to 1/3.
+Can also be an integer which than indicates how many words to keep. Specify +Inf if you want to keep all words.}
 
-\item{ngram_max}{maximum ngram}
+\item{ngram_max}{integer indicating to limit keywords which combine \code{ngram_max} combinations of words which follow one another}
 
-\item{sep}{separator}
+\item{sep}{character string with the separator to \code{paste} the subsequent relevant words together}
 }
 \value{
-Under construction. Will change soon
+a data.frame with columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
 }
 \description{
-Textrank - extract relevant keywords
+The textrank algorithm allows to find relevant keywords in text.\cr
+
+In order to find relevant keywords, the textrank algorithm constructs a word network. This
+network is constructed by looking which words follow one another.
+A link is set up between two words if they follow one another, the link gets a higher weight if these 2 words occur
+more frequenctly next to each other in the text.\cr
+On top of the resulting network the 'Pagerank' algorithm is applied to get the importance of each word.
+The top 1/3 of all these words are kept and are considered relevant. After this, a keywords table is constructed
+by combining the relevant words together if they appear following one another in the text.
 }
 \examples{
 data(joboffer)
-keywords <- textrank_keywords(joboffer$lemma, joboffer$upos \%in\% c("NOUN", "VERB", "ADJ"))
+keywords <- textrank_keywords(joboffer$lemma,
+                              relevant = joboffer$upos \%in\% c("NOUN", "VERB", "ADJ"))
 subset(keywords, ngram > 1)
-}
-\seealso{
-\code{\link{textrank}}
+keywords <- textrank_keywords(joboffer$lemma,
+                              relevant = joboffer$upos \%in\% c("NOUN"),
+                              sep = " ")
+subset(keywords, ngram > 1)
 }

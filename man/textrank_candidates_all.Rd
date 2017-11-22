@@ -12,7 +12,7 @@ textrank_candidates_all(x)
 \value{
 a data.frame with 2 columns textrank_id_1 and textrank_id_2 listing up all possible combinations of \code{x}.
 The columns textrank_id_1 and textrank_id_2 contain identifiers of sentences given in \code{sentence_id}.
-This data.frame can be used as input in the \code{\link{textrank}} algorithm.
+This data.frame can be used as input in the \code{\link{textrank_sentences}} algorithm.
 }
 \description{
 Get all combinations of sentences
@@ -23,5 +23,5 @@ candidates <- textrank_candidates_all(unique(joboffer$sentence_id))
 head(candidates, 50)
 }
 \seealso{
-\code{\link{textrank}}
+\code{\link{textrank_sentences}}
 }

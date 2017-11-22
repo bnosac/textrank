@@ -20,7 +20,7 @@ the number of minhash signatures should always be a multiple of the number of lo
 \value{
 a data.frame with 2 columns textrank_id_1 and textrank_id_2 containing identifiers of sentences \code{sentence_id}
 which contained terms in the same minhash bucket.
-This data.frame can be used as input in the \code{\link{textrank}} algorithm.
+This data.frame can be used as input in the \code{\link{textrank_sentences}} algorithm.
 }
 \description{
 This functionality is usefull if there are a lot of sentences and most of the sentences have no overlapping
@@ -41,5 +41,5 @@ candidates <- textrank_candidates_lsh(x = terminology$lemma, sentence_id = termi
 head(candidates)
 }
 \seealso{
-\code{\link{textrank}}
+\code{\link{textrank_sentences}}
 }

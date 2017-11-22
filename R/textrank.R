@@ -28,9 +28,9 @@ textrank_jaccard <- function(termsa, termsb){
 #' the number of minhash signatures should always be a multiple of the number of local sensitive hashing bands. See the example
 #' @return a data.frame with 2 columns textrank_id_1 and textrank_id_2 containing identifiers of sentences \code{sentence_id}
 #' which contained terms in the same minhash bucket.
-#' This data.frame can be used as input in the \code{\link{textrank}} algorithm.
+#' This data.frame can be used as input in the \code{\link{textrank_sentences}} algorithm.
 #' @export
-#' @seealso \code{\link{textrank}}
+#' @seealso \code{\link{textrank_sentences}}
 #' @examples
 #' library(textreuse)
 #' lsh_probability(h = 1000, b = 500, s = 0.1) # A 10 percent Jaccard overlap will be detected well
@@ -81,9 +81,9 @@ textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
 #' @param x a character vector of sentence identifiers
 #' @return a data.frame with 2 columns textrank_id_1 and textrank_id_2 listing up all possible combinations of \code{x}.
 #' The columns textrank_id_1 and textrank_id_2 contain identifiers of sentences given in \code{sentence_id}.
-#' This data.frame can be used as input in the \code{\link{textrank}} algorithm.
+#' This data.frame can be used as input in the \code{\link{textrank_sentences}} algorithm.
 #' @export
-#' @seealso \code{\link{textrank}}
+#' @seealso \code{\link{textrank_sentences}}
 #' @examples
 #' data(joboffer)
 #' candidates <- textrank_candidates_all(unique(joboffer$sentence_id))
@@ -135,7 +135,7 @@ textrank_candidates_all <- function(x){
 #' @param options_pagerank a list of arguments passed on to \code{\link[igraph]{page_rank}}
 #' @param ... arguments passed on to \code{textrank_dist}
 #' @seealso \code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}
-#' @return an object of class textrank
+#' @return an object of class textrank_sentences
 #' which is a list with elements:
 #' \itemize{
 #' \item sentences: a data.frame with columns textrank_id, sentence and textrank where the textrank is the Google Pagerank importance metric of the sentence
@@ -154,7 +154,7 @@ textrank_candidates_all <- function(x){
 #' head(terminology)
 #'
 #' ## Textrank for finding the most relevant sentences
-#' tr <- textrank(data = sentences, terminology = terminology)
+#' tr <- textrank_sentences(data = sentences, terminology = terminology)
 #' summary(tr, n = 2)
 #' summary(tr, n = 5, keep.sentence.order = TRUE)
 #'
@@ -163,13 +163,14 @@ textrank_candidates_all <- function(x){
 #' minhash <- minhash_generator(n = 1000, seed = 123456789)
 #' candidates <- textrank_candidates_lsh(x = terminology$lemma, sentence_id = terminology$sentence_id,
 #'                                       minhashFUN = minhash, bands = 500)
-#' tr <- textrank(data = sentences, terminology = terminology, textrank_candidates = candidates)
+#' tr <- textrank_sentences(data = sentences, terminology = terminology,
+#'                          textrank_candidates = candidates)
 #' summary(tr, n = 2)
 #'
 #' ## You can also reduce the number of sentence combinations by sampling
-#' tr <- textrank(data = sentences, terminology = terminology, max = 100)
+#' tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
 #' summary(tr, n = 2)
-textrank <- function(data, terminology,
+textrank_sentences <- function(data, terminology,
                      textrank_dist = textrank_jaccard,
                      textrank_candidates = textrank_candidates_all(data$textrank_id),
                      max = 1000,
@@ -224,23 +225,25 @@ textrank <- function(data, terminology,
     sentences = data,
     sentences_dist = sent2sent_distance,
     pagerank = pr)
-  class(result) <- "textrank"
+  class(result) <- "textrank_sentences"
   result
 }
 
-#' @title Extract the most important sentences which were identified with textrank
-#' @description Extract the most important sentences which were identified by \code{\link{textrank}}
-#' @param object an object of class textrank
+
+
+#' @title Extract the most important sentences which were identified with textrank_sentences
+#' @description Extract the most important sentences which were identified by \code{\link{textrank_sentences}}
+#' @param object an object of class textrank_sentences
 #' @param n integer indicating to extract only the top n sentences
 #' @param keep.sentence.order logical indicating to keep the sentence order as provided
-#' in the original \code{data} argument of the \code{\link{textrank}} function
+#' in the original \code{data} argument of the \code{\link{textrank_sentences}} function
 #' or to order it by the pagerank score. Defaults to FALSE indicating to order by pagerank score.
 #' @param ... not used
 #' @return a character vector with the top \code{n} most important sentences
-#' which were identified by \code{\link{textrank}}
+#' which were identified by \code{\link{textrank_sentences}}
 #' @export
-#' @seealso \code{\link{textrank}}
-summary.textrank <- function(object, n = 3, keep.sentence.order = FALSE, ...){
+#' @seealso \code{\link{textrank_sentences}}
+summary.textrank_sentences <- function(object, n = 3, keep.sentence.order = FALSE, ...){
   pr <- sort(object$pagerank$vector, decreasing = TRUE)
   topsent <- utils::head(names(pr), n)
   out <- object$sentences[object$sentences$textrank_id %in% topsent, ]
@@ -251,37 +254,54 @@ summary.textrank <- function(object, n = 3, keep.sentence.order = FALSE, ...){
 }
 
 
-next_word <- function(x, n){
-  data.table::shift(x, n = as.integer(n), type = "lead")
-}
-
 
 #' @title Textrank - extract relevant keywords
-#' @description Textrank - extract relevant keywords
-#' @param x a character vector of words
-#' @param is_relevant a logical vector indicating if the word is relevant or not
-#' @param p percentage of relevant words to keep
-#' @param ngram_max maximum ngram
-#' @param sep separator
-#' @return Under construction. Will change soon
+#' @description The textrank algorithm allows to find relevant keywords in text.\cr
+#'
+#' In order to find relevant keywords, the textrank algorithm constructs a word network. This
+#' network is constructed by looking which words follow one another.
+#' A link is set up between two words if they follow one another, the link gets a higher weight if these 2 words occur
+#' more frequenctly next to each other in the text.\cr
+#' On top of the resulting network the 'Pagerank' algorithm is applied to get the importance of each word.
+#' The top 1/3 of all these words are kept and are considered relevant. After this, a keywords table is constructed
+#' by combining the relevant words together if they appear following one another in the text.
+#' @param x a character vector of words.
+#' @param relevant a logical vector indicating if the word is relevant or not. In the standard textrank
+#' algorithm, this is normally done by doing a Parts of Speech tagging and selecting which of the words are
+#' nouns and adjectives.
+#' @param p percentage (between 0 and 1) of relevant words to keep. Defaults to 1/3.
+#' Can also be an integer which than indicates how many words to keep. Specify +Inf if you want to keep all words.
+#' @param ngram_max integer indicating to limit keywords which combine \code{ngram_max} combinations of words which follow one another
+#' @param sep character string with the separator to \code{paste} the subsequent relevant words together
+#' @return a data.frame with columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
 #' @export
-#' @seealso \code{\link{textrank}}
 #' @examples
 #' data(joboffer)
-#' keywords <- textrank_keywords(joboffer$lemma, joboffer$upos %in% c("NOUN", "VERB", "ADJ"))
+#' keywords <- textrank_keywords(joboffer$lemma,
+#'                               relevant = joboffer$upos %in% c("NOUN", "VERB", "ADJ"))
 #' subset(keywords, ngram > 1)
-textrank_keywords <- function(x, is_relevant, p=1/3, ngram_max=5, sep = "-"){
-  stopifnot(length(x) == length(is_relevant))
-  stopifnot(is.logical(is_relevant))
+#' keywords <- textrank_keywords(joboffer$lemma,
+#'                               relevant = joboffer$upos %in% c("NOUN"),
+#'                               sep = " ")
+#' subset(keywords, ngram > 1)
+textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_max = 5, sep = "-"){
+  stopifnot(is.logical(relevant))
+  stopifnot(is.character(x))
+  stopifnot(length(x) == length(relevant))
+  stopifnot(length(p) == 1)
+  stopifnot(ngram_max > 1)
+  keyword <- freq <- ngram <- NULL
 
-
-  term_adjacency <- function (x, is_relevant, order = TRUE, ...) {
+  next_word <- function(x, n){
+    data.table::shift(x, n = as.integer(n), type = "lead")
+  }
+  term_adjacency <- function (x, relevant, order = TRUE, ...) {
     cooc <- weight <- term1 <- term2 <- NULL
     result <- data.table(term1 = x,
-                         term2 = next_word(x, n = 1), n = 1L)
+                         term2 = next_word(x, n = 1), cooc = 1L)
     result <- result[!is.na(term1) & !is.na(term2) &
-                       is_relevant %in% TRUE & next_word(is_relevant, n = 1) %in% TRUE, ]
-    result <- result[, list(weight = sum(n)), by = list(term1, term2)]
+                       relevant %in% TRUE & next_word(relevant, n = 1) %in% TRUE, ]
+    result <- result[, list(weight = sum(cooc)), by = list(term1, term2)]
     if (order) {
       result <- result[order(weight, decreasing = TRUE), ]
     }
@@ -289,30 +309,36 @@ textrank_keywords <- function(x, is_relevant, p=1/3, ngram_max=5, sep = "-"){
   }
 
   ## Identify word network by looking at which words are followed by one another
+  data <- term_adjacency(x, relevant)
+
   ## On that network apply Google pagerank
-  data <- term_adjacency(x, is_relevant)
   wordgraph <- igraph::graph_from_data_frame(data, directed = FALSE)
   pr <- igraph::page_rank(graph = wordgraph)
 
   ## Keep by default 1/3 of the words in the network which have the highest pagerank
-  keep_nr <- igraph::vcount(wordgraph) * p
+  keep_nr <- igraph::vcount(wordgraph)
+  if(p == +Inf){
+  }else if(p <= 1){
+    keep_nr <- keep_nr * p
+  }else{
+    keep_nr <- min(keep_nr, p)
+  }
   keep_nr <- ceiling(keep_nr)
   keywords <- sort(pr$vector, decreasing = TRUE)
   keywords <- head(keywords, keep_nr)
   keywords <- names(keywords)
 
   ## extract keyword combinations: keywords which are followed by another keyword
+  ## this is done for each ngram combination meaning we keep the ngram of the lower n even if the higher n is there
   output_per_ngram <- list()
-  keywordcombinations <- data.frame(keyword = ifelse(x %in% keywords, x, NA_character_),
-                                    ngram = 1L,
-                                    stringsAsFactors = FALSE)
+  keywordcombinations <- data.table(keyword = ifelse(x %in% keywords, x, NA_character_), ngram = 1L)
   stop_already <- is.na(keywordcombinations$keyword)
   output_per_ngram[[1]] <- keywordcombinations
   for(i in 2:ngram_max){
-    nextterm <- next_word(x, n=i-1)
+    nextterm <- next_word(x, n = i-1)
     nextterm <- ifelse(nextterm %in% keywords, nextterm, NA_character_)
     stop_already[which(is.na(nextterm))] <- TRUE
-    if(sum(stop_already) ==  length(stop_already)){
+    if(sum(stop_already) == length(stop_already)){
       break
     }
     keywordcombinations$keyword <- ifelse(stop_already, keywordcombinations$keyword, paste(keywordcombinations$keyword, nextterm, sep = sep))
@@ -320,13 +346,12 @@ textrank_keywords <- function(x, is_relevant, p=1/3, ngram_max=5, sep = "-"){
     output_per_ngram[[i]] <- keywordcombinations[keywordcombinations$ngram == i, ]
   }
   output_per_ngram <- lapply(output_per_ngram, FUN=function(x){
-    x <- setDT(x)
     x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
     x <- x[order(freq, decreasing=TRUE), ]
-    x <- setDF(x)
     x
   })
   output_per_ngram <- data.table::rbindlist(output_per_ngram)
+  output_per_ngram <- setDF(output_per_ngram)
   output_per_ngram
 }
 
