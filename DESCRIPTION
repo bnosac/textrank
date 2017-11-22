@@ -5,7 +5,7 @@ Version: 0.1.0
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Author: Jan Wijffels [aut, cre, cph], BNOSAC [cph]
 Authors@R: c(person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be'), person('BNOSAC', role = 'cph'))
-Description: The 'textrank' algorithm is an extension of the 'Pagerank' algorithm for text. The algorithm allows to summarize text by calculating how sentences are related to one another. This is done by looking at overlapping terminology used in sentences in order to set up links between sentences. The resulting sentence network is next plugged into the 'Pagerank' algorithm which identifies the most important sentences in your text and ranks them.
+Description: The 'textrank' algorithm is an extension of the 'Pagerank' algorithm for text. The algorithm allows to summarize text by calculating how sentences are related to one another. This is done by looking at overlapping terminology used in sentences in order to set up links between sentences. The resulting sentence network is next plugged into the 'Pagerank' algorithm which identifies the most important sentences in your text and ranks them. More information can be found in the paper from Mihalcea, Rada & Tarau, Paul (2004) <http://www.aclweb.org/anthology/W04-3252>.
 License: MPL-2.0
 URL: https://github.com/bnosac/textrank
 Encoding: UTF-8
