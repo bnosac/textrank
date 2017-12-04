@@ -307,7 +307,8 @@ print.textrank_sentences <- function(x, ...){
 #' subset(keywords$keywords, ngram > 1)
 #'
 #' ## plotting pagerank to see the relevance of each word
-#' plot(sort(keywords$pagerank$vector, decreasing = TRUE))
+#' barplot(sort(keywords$pagerank$vector), horiz = TRUE,
+#'         las = 2, cex.names = 0.5, col = "lightblue", xlab = "Pagerank")
 textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_max = 5, sep = "-"){
   stopifnot(is.logical(relevant))
   stopifnot(is.character(x))

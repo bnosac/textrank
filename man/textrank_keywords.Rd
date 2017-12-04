@@ -56,7 +56,8 @@ keywords <- textrank_keywords(joboffer$lemma,
 subset(keywords$keywords, ngram > 1)
 
 ## plotting pagerank to see the relevance of each word
-plot(sort(keywords$pagerank$vector, decreasing = TRUE))
+barplot(sort(keywords$pagerank$vector), horiz = TRUE,
+        las = 2, cex.names = 0.5, col = "lightblue", xlab = "Pagerank")
 }
 \seealso{
 \code{\link[igraph]{page_rank}}
