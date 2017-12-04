@@ -75,9 +75,9 @@ joboffer <- as.data.frame(joboffer)
 For extracting keywords in the job description, we are providing it a vector of words and a vector of logicals indicating for each word if it is relevant. In the below case we consider only nouns, verbs and adjectives as relevant.
 
 ```{r}
-keywords <- textrank_keywords(joboffer$lemma,
-                              relevant = joboffer$upos %in% c("NOUN", "VERB", "ADJ"))
-subset(keywords, ngram > 1 & freq > 1)
+keyw <- textrank_keywords(joboffer$lemma,
+                          relevant = joboffer$upos %in% c("NOUN", "VERB", "ADJ"))
+subset(keyw$keywords, ngram > 1 & freq > 1)
 ```
 
 ## Textrank for sentence ranking

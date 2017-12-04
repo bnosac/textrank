@@ -22,10 +22,20 @@ Can also be an integer which than indicates how many words to keep. Specify +Inf
 \item{sep}{character string with the separator to \code{paste} the subsequent relevant words together}
 }
 \value{
-a data.frame with columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
+an object of class textrank_keywords
+which is a list with elements:
+\itemize{
+\item terms: a character vector of words from the word network with the highest pagerank
+\item pagerank: the result of a call to \code{\link[igraph]{page_rank}} on the word network
+\item keywords: the data.frame with keywords containing columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
+\item keywords_by_ngram: data.frame with columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
+at each level of ngram. The difference with keywords being that if you have a sequence of words e.g. data science consultant, then in the keywords_by_ngram
+you would still have the keywords data analysis and science consultant, while in the keywords list element you would only have data science consultant
+}
 }
 \description{
-The textrank algorithm allows to find relevant keywords in text.\cr
+The textrank algorithm allows to find relevant keywords in text.
+Where keywords are a combination of words following each other. \cr
 
 In order to find relevant keywords, the textrank algorithm constructs a word network. This
 network is constructed by looking which words follow one another.
@@ -39,9 +49,15 @@ by combining the relevant words together if they appear following one another in
 data(joboffer)
 keywords <- textrank_keywords(joboffer$lemma,
                               relevant = joboffer$upos \%in\% c("NOUN", "VERB", "ADJ"))
-subset(keywords, ngram > 1)
+subset(keywords$keywords, ngram > 1 & freq > 1)
 keywords <- textrank_keywords(joboffer$lemma,
                               relevant = joboffer$upos \%in\% c("NOUN"),
-                              sep = " ")
-subset(keywords, ngram > 1)
+                              p = 1/2, sep = " ")
+subset(keywords$keywords, ngram > 1)
+
+## plotting pagerank to see the relevance of each word
+plot(sort(keywords$pagerank$vector, decreasing = TRUE))
+}
+\seealso{
+\code{\link[igraph]{page_rank}}
 }

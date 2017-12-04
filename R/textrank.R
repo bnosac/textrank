@@ -169,6 +169,7 @@ textrank_candidates_all <- function(x){
 #'
 #' ## You can also reduce the number of sentence combinations by sampling
 #' tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
+#' tr
 #' summary(tr, n = 2)
 textrank_sentences <- function(data, terminology,
                      textrank_dist = textrank_jaccard,
@@ -254,9 +255,19 @@ summary.textrank_sentences <- function(object, n = 3, keep.sentence.order = FALS
 }
 
 
+#' @export
+print.textrank_sentences <- function(x, ...){
+  cat("Textrank on sentences, showing top 5 most important sentences found:", sep = "\n")
+  txt <- summary(x, n = 5)
+  txt <- sprintf("  %s. %s", seq_along(txt), txt)
+  cat(txt, sep = "\n")
+}
+
+
 
 #' @title Textrank - extract relevant keywords
-#' @description The textrank algorithm allows to find relevant keywords in text.\cr
+#' @description The textrank algorithm allows to find relevant keywords in text.
+#' Where keywords are a combination of words following each other. \cr
 #'
 #' In order to find relevant keywords, the textrank algorithm constructs a word network. This
 #' network is constructed by looking which words follow one another.
@@ -273,17 +284,30 @@ summary.textrank_sentences <- function(object, n = 3, keep.sentence.order = FALS
 #' Can also be an integer which than indicates how many words to keep. Specify +Inf if you want to keep all words.
 #' @param ngram_max integer indicating to limit keywords which combine \code{ngram_max} combinations of words which follow one another
 #' @param sep character string with the separator to \code{paste} the subsequent relevant words together
-#' @return a data.frame with columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
+#' @return an object of class textrank_keywords
+#' which is a list with elements:
+#' \itemize{
+#' \item terms: a character vector of words from the word network with the highest pagerank
+#' \item pagerank: the result of a call to \code{\link[igraph]{page_rank}} on the word network
+#' \item keywords: the data.frame with keywords containing columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
+#' \item keywords_by_ngram: data.frame with columns keyword, ngram, freq indicating the keywords found and the frequency of occurrence
+#' at each level of ngram. The difference with keywords being that if you have a sequence of words e.g. data science consultant, then in the keywords_by_ngram
+#' you would still have the keywords data analysis and science consultant, while in the keywords list element you would only have data science consultant
+#' }
 #' @export
+#' @seealso \code{\link[igraph]{page_rank}}
 #' @examples
 #' data(joboffer)
 #' keywords <- textrank_keywords(joboffer$lemma,
 #'                               relevant = joboffer$upos %in% c("NOUN", "VERB", "ADJ"))
-#' subset(keywords, ngram > 1)
+#' subset(keywords$keywords, ngram > 1 & freq > 1)
 #' keywords <- textrank_keywords(joboffer$lemma,
 #'                               relevant = joboffer$upos %in% c("NOUN"),
-#'                               sep = " ")
-#' subset(keywords, ngram > 1)
+#'                               p = 1/2, sep = " ")
+#' subset(keywords$keywords, ngram > 1)
+#'
+#' ## plotting pagerank to see the relevance of each word
+#' plot(sort(keywords$pagerank$vector, decreasing = TRUE))
 textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_max = 5, sep = "-"){
   stopifnot(is.logical(relevant))
   stopifnot(is.character(x))
@@ -352,6 +376,18 @@ textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_m
   })
   output_per_ngram <- data.table::rbindlist(output_per_ngram)
   output_per_ngram <- setDF(output_per_ngram)
-  output_per_ngram
+
+  output_keywords <- keywordcombinations[!is.na(keywordcombinations$keyword), ]
+  output_keywords <- as.data.table(output_keywords)
+  output_keywords <- output_keywords[, list(freq = .N), by = list(keyword, ngram)]
+  output_keywords <- output_keywords[order(freq, decreasing = TRUE), ]
+  output_keywords <- setDF(output_keywords)
+
+  result <- list(terms = keywords,
+                 pagerank = pr,
+                 keywords = output_keywords,
+                 keywords_by_ngram = output_per_ngram)
+  class(result) <- "textrank_keywords"
+  result
 }
 

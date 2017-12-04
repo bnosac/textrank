@@ -84,6 +84,7 @@ summary(tr, n = 2)
 
 ## You can also reduce the number of sentence combinations by sampling
 tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
+tr
 summary(tr, n = 2)
 }
 \seealso{
