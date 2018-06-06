@@ -181,6 +181,7 @@ textrank_sentences <- function(data, terminology,
 
   stopifnot(sum(duplicated(data[, 1])) == 0)
   data <- as.data.frame(data)
+  stopifnot(nrow(data) > 1)
   data.table::setnames(data, old = colnames(data)[1:2], new = c("textrank_id", "sentence"))
 
   terminology <- as.data.table(terminology)
