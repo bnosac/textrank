@@ -97,12 +97,14 @@ In order to apply textrank for sentence ranking, we need to feed the function `t
 - a data.frame with sentences and 
 - a data.frame with words which are part of each sentence. 
 
-In the following example, we take only nouns and adjectives.
+In the following example we start by creating a sentence identifier which is a combination of a document/paragraph and sentence identifier and we take only nouns and adjectives for finding overlap between sentences.
 
 ```{r}
-sentences <- unique(joboffer[, c("sentence_id", "sentence")])
+library(udpipe)
+joboffer$textrank_id <- unique_identifier(joboffer, c("doc_id", "paragraph_id", "sentence_id"))
+sentences <- unique(joboffer[, c("textrank_id", "sentence")])
 terminology <- subset(joboffer, upos %in% c("NOUN", "ADJ"))
-terminology <- terminology[, c("sentence_id", "lemma")]
+terminology <- terminology[, c("textrank_id", "lemma")]
 head(terminology)
 ```
 
@@ -141,7 +143,7 @@ The result is a you saving computation time. For good settings on `n` and `bands
 library(textreuse)
 minhash <- minhash_generator(n = 1000, seed = 123456789)
 candidates <- textrank_candidates_lsh(x = terminology$lemma, 
-                                      sentence_id = terminology$sentence_id,
+                                      sentence_id = terminology$textrank_id,
                                       minhashFUN = minhash, 
                                       bands = 500)
 dim(candidates)

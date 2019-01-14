@@ -18,8 +18,10 @@ This data.frame can be used as input in the \code{\link{textrank_sentences}} alg
 Get all combinations of sentences
 }
 \examples{
+library(udpipe)
 data(joboffer)
-candidates <- textrank_candidates_all(unique(joboffer$sentence_id))
+joboffer$textrank_id <- unique_identifier(joboffer, c("doc_id", "paragraph_id", "sentence_id"))
+candidates <- textrank_candidates_all(unique(joboffer$textrank_id))
 head(candidates, 50)
 }
 \seealso{
