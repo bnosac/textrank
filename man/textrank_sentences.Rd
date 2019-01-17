@@ -74,6 +74,7 @@ tr <- textrank_sentences(data = sentences, terminology = terminology)
 summary(tr, n = 2)
 summary(tr, n = 5, keep.sentence.order = TRUE)
 
+\dontrun{
 ## Using minhash to reduce sentence combinations - relevant if you have a lot of sentences
 library(textreuse)
 minhash <- minhash_generator(n = 1000, seed = 123456789)
@@ -82,7 +83,7 @@ candidates <- textrank_candidates_lsh(x = terminology$lemma, sentence_id = termi
 tr <- textrank_sentences(data = sentences, terminology = terminology,
                          textrank_candidates = candidates)
 summary(tr, n = 2)
-
+}
 ## You can also reduce the number of sentence combinations by sampling
 tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
 tr
