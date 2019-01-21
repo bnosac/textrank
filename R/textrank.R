@@ -113,7 +113,7 @@ textrank_candidates_all <- function(x){
     })
   }
   candidates <- data.table::rbindlist(candidates)
-  candidates <- setDF(candidates)
+  candidates <- data.table::setDF(candidates)
   candidates
 }
 
@@ -146,9 +146,10 @@ textrank_candidates_all <- function(x){
 #' @param textrank_candidates a data.frame of candidate sentence to sentence comparisons with columns textrank_id_1 and textrank_id_2
 #' indicating for which combination of sentences we want to compute the Jaccard distance or the distance function as provided in \code{textrank_dist}.
 #' See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_candidates_lsh}}.
-#' @param max integer indicating to reduce the number of sentence to sentence combinations to compute.
-#' In case provided, we take only this max amount of rows from \code{textrank_candidates}
 #' @param options_pagerank a list of arguments passed on to \code{\link[igraph]{page_rank}}
+#' @param show_progress will show a progress bar doing \code{textrank_dist} calculation.
+#' @param cl a cluster object used to do parallel calculation of \code{textrank_dist}.
+#' See \code{\link[parallel]{makeCluster}} & \code{\link[pbapply]{pbapply}} for more.
 #' @param ... arguments passed on to \code{textrank_dist}
 #' @seealso \code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}
 #' @return an object of class textrank_sentences
@@ -185,58 +186,68 @@ textrank_candidates_all <- function(x){
 #'                          textrank_candidates = candidates)
 #' summary(tr, n = 2)
 #' }
-#' ## You can also reduce the number of sentence combinations by sampling
-#' tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
-#' tr
-#' summary(tr, n = 2)
 textrank_sentences <- function(data, terminology,
                      textrank_dist = textrank_jaccard,
                      textrank_candidates = textrank_candidates_all(data$textrank_id),
-                     max = 1000,
                      options_pagerank = list(directed = FALSE),
+                     show_progress = FALSE, cl = NULL,
                      ...){
+
   textrank_id <- NULL
-
+  term <- NULL
+  textrank_id_1 <- NULL
+  textrank_id_2 <- NULL
+  . <- NULL
+  weight <- NULL
+  N <- NULL
   stopifnot(sum(duplicated(data[, 1])) == 0)
-  data <- as.data.frame(data)
-  stopifnot(nrow(data) > 1)
+
+  if(!show_progress & !is.null(cl)){
+    show_progress <- TRUE
+    warning("When cl is not NULL show_progress is set to TRUE.")
+  }
+
+  if(!data.table::is.data.table(data)) data <- data.table::as.data.table(data)
+  if(!data.table::is.data.table(terminology)) terminology <- data.table::as.data.table(terminology)
+  if(!data.table::is.data.table(textrank_candidates)) textrank_candidates <- data.table::as.data.table(textrank_candidates)
+
   data.table::setnames(data, old = colnames(data)[1:2], new = c("textrank_id", "sentence"))
-
-  terminology <- as.data.table(terminology)
   data.table::setnames(terminology, old = colnames(terminology)[1:2], new = c("textrank_id", "term"))
-  data.table::setkey(terminology, "textrank_id")
 
-  ## Calculate pairwise distances along all sentence combinations
-  sentence_dist <- function(id1, id2, distFUN, ...){
-    data1 <- terminology[textrank_id == id1, ]
-    data2 <- terminology[textrank_id == id2, ]
-    if(nrow(data1) == 0 || nrow(data2) == 0){
-      w <- 0
-    }else{
-      w <- distFUN(data1$term, data2$term, ...)
-    }
-    data.frame(
-      textrank_id_1 = id1,
-      textrank_id_2 = id2,
-      weight = w,
-      stringsAsFactors = FALSE)
+  data.table::setkey(terminology, "textrank_id")
+  data.table::setkey(textrank_candidates, "textrank_id_1")
+
+  sentence_dist <- function(IDx){
+
+    termsX <- terminology[textrank_id == IDx, term]
+    on_IDs <- textrank_candidates[textrank_id_1 == IDx, textrank_id_2]
+
+    return(terminology[textrank_id %in% on_IDs,
+                .(weight = get("textrank_dist")(termsX, term, ...)), by = "textrank_id"][
+                  , .(textrank_id_1 = IDx, textrank_id_2 = textrank_id, weight)])
+
   }
-  sent2sent_distance <- as.data.frame(textrank_candidates)
-  if(!missing(max)){
-    max <- min(nrow(sent2sent_distance), max)
-    sent2sent_distance <- sent2sent_distance[sample.int(n = nrow(sent2sent_distance), size = max), ]
+
+  run_on_ids <- unique(textrank_candidates[, textrank_id_1])
+
+  if(show_progress){
+    cat("Calculating distance between sentences")
+    sent2sent_distance <- pbapply::pblapply(run_on_ids, sentence_dist, cl = cl)
+  } else {
+    sent2sent_distance <- lapply(run_on_ids, sentence_dist)
   }
-  sent2sent_distance <- mapply(id1 = sent2sent_distance$textrank_id_1,
-                               id2 = sent2sent_distance$textrank_id_2, FUN = sentence_dist, MoreArgs = list(distFUN = textrank_dist, ...),
-                               SIMPLIFY = FALSE)
   sent2sent_distance <- data.table::rbindlist(sent2sent_distance)
 
   ## Calculate pagerank
+  if(show_progress) cat("Calculating pagerank")
   pr <- igraph::graph_from_data_frame(sent2sent_distance, directed = FALSE)
   options_pagerank$graph <- pr
   pr <- do.call(igraph::page_rank, options_pagerank)
 
   ## Add pagerank to sentences for having it in the ouput
+  if(class(data$textrank_id) != "character") data[, textrank_id := as.character(textrank_id)]
+  data.table::setkey(data, "textrank_id")
+
   data <- merge(data,
                 data.frame(textrank_id = names(pr$vector), textrank = as.numeric(pr$vector), stringsAsFactors = FALSE),
                 by = "textrank_id", all.x=TRUE, all.y=FALSE, sort = FALSE, suffixes = c("sent.", ""))
