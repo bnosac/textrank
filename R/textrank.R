@@ -147,8 +147,7 @@ textrank_candidates_all <- function(x){
 #' indicating for which combination of sentences we want to compute the Jaccard distance or the distance function as provided in \code{textrank_dist}.
 #' See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_candidates_lsh}}.
 #' @param options_pagerank a list of arguments passed on to \code{\link[igraph]{page_rank}}
-#' @param show_progress will show a progress bar doing \code{textrank_dist} calculation.
-#' @param cl a cluster object used to do parallel calculation of \code{textrank_dist}.
+#' @param show_progress will show you the progress of the textrank_sentences function.
 #' See \code{\link[parallel]{makeCluster}} & \code{\link[pbapply]{pbapply}} for more.
 #' @param ... arguments passed on to \code{textrank_dist}
 #' @seealso \code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}
@@ -190,7 +189,7 @@ textrank_sentences <- function(data, terminology,
                      textrank_dist = textrank_jaccard,
                      textrank_candidates = textrank_candidates_all(data$textrank_id),
                      options_pagerank = list(directed = FALSE),
-                     show_progress = FALSE, cl = NULL,
+                     show_progress = FALSE,
                      ...){
 
   textrank_id <- NULL
@@ -202,10 +201,6 @@ textrank_sentences <- function(data, terminology,
   N <- NULL
   stopifnot(sum(duplicated(data[, 1])) == 0)
 
-  if(!show_progress & !is.null(cl)){
-    show_progress <- TRUE
-    warning("When cl is not NULL show_progress is set to TRUE.")
-  }
 
   if(!data.table::is.data.table(data)) data <- data.table::as.data.table(data)
   if(!data.table::is.data.table(terminology)) terminology <- data.table::as.data.table(terminology)
@@ -217,7 +212,15 @@ textrank_sentences <- function(data, terminology,
   data.table::setkey(terminology, "textrank_id")
   data.table::setkey(textrank_candidates, "textrank_id_1")
 
+
+  run_on_ids <- unique(textrank_candidates[, textrank_id_1])
+
   sentence_dist <- function(IDx){
+
+    if(show_progress){
+      if(IDx == run_on_ids[1]) cat(IDx) else cat(paste(" -", IDx))
+      if(IDx == run_on_ids[length(run_on_ids)]) cat(fill = TRUE)
+    }
 
     termsX <- terminology[textrank_id == IDx, term]
     on_IDs <- textrank_candidates[textrank_id_1 == IDx, textrank_id_2]
@@ -228,18 +231,18 @@ textrank_sentences <- function(data, terminology,
 
   }
 
-  run_on_ids <- unique(textrank_candidates[, textrank_id_1])
-
   if(show_progress){
-    cat("Calculating distance between sentences")
-    sent2sent_distance <- pbapply::pblapply(run_on_ids, sentence_dist, cl = cl)
-  } else {
-    sent2sent_distance <- lapply(run_on_ids, sentence_dist)
+    cat(paste("Calculating a total of", length(run_on_ids), "distances between sentences"), fill = TRUE)
+    cat("Calculating distance: ")
   }
+
+  sent2sent_distance <- lapply(run_on_ids, sentence_dist)
+
+
   sent2sent_distance <- data.table::rbindlist(sent2sent_distance)
 
   ## Calculate pagerank
-  if(show_progress) cat("Calculating pagerank")
+  if(show_progress) cat("Calculating pagerank", fill = TRUE)
   pr <- igraph::graph_from_data_frame(sent2sent_distance, directed = FALSE)
   options_pagerank$graph <- pr
   pr <- do.call(igraph::page_rank, options_pagerank)

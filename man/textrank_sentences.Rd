@@ -7,7 +7,7 @@
 textrank_sentences(data, terminology, textrank_dist = textrank_jaccard,
   textrank_candidates = textrank_candidates_all(data$textrank_id),
   options_pagerank = list(directed = FALSE), show_progress = FALSE,
-  cl = NULL, ...)
+  ...)
 }
 \arguments{
 \item{data}{a data.frame with 1 row per sentence where the first column
@@ -30,9 +30,7 @@ See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_ca
 
 \item{options_pagerank}{a list of arguments passed on to \code{\link[igraph]{page_rank}}}
 
-\item{show_progress}{will show a progress bar doing \code{textrank_dist} calculation.}
-
-\item{cl}{a cluster object used to do parallel calculation of \code{textrank_dist}.
+\item{show_progress}{will show you the progress of the textrank_sentences function.
 See \code{\link[parallel]{makeCluster}} & \code{\link[pbapply]{pbapply}} for more.}
 
 \item{...}{arguments passed on to \code{textrank_dist}}
