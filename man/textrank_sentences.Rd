@@ -6,7 +6,7 @@
 \usage{
 textrank_sentences(data, terminology, textrank_dist = textrank_jaccard,
   textrank_candidates = textrank_candidates_all(data$textrank_id),
-  options_pagerank = list(directed = FALSE), show_progress = FALSE,
+  max = 1000, options_pagerank = list(directed = FALSE), trace = FALSE,
   ...)
 }
 \arguments{
@@ -28,10 +28,12 @@ indicating the percent of common tokens.}
 indicating for which combination of sentences we want to compute the Jaccard distance or the distance function as provided in \code{textrank_dist}.
 See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_candidates_lsh}}.}
 
+\item{max}{integer indicating to reduce the number of sentence to sentence combinations to compute.
+In case provided, we take only this max amount of rows from \code{textrank_candidates}}
+
 \item{options_pagerank}{a list of arguments passed on to \code{\link[igraph]{page_rank}}}
 
-\item{show_progress}{will show you the progress of the textrank_sentences function.
-See \code{\link[parallel]{makeCluster}} & \code{\link[pbapply]{pbapply}} for more.}
+\item{trace}{logical indicating to show the progress of the textrank_sentences function. Can also be a positive integer in which case it will print the progress for every \code{trace} number of sentences.}
 
 \item{...}{arguments passed on to \code{textrank_dist}}
 }
@@ -85,6 +87,11 @@ tr <- textrank_sentences(data = sentences, terminology = terminology,
                          textrank_candidates = candidates)
 summary(tr, n = 2)
 }
+
+## You can also reduce the number of sentence combinations by sampling
+tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100, trace = 10)
+tr
+summary(tr, n = 2)
 }
 \seealso{
 \code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}

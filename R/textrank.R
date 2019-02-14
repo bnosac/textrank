@@ -146,9 +146,10 @@ textrank_candidates_all <- function(x){
 #' @param textrank_candidates a data.frame of candidate sentence to sentence comparisons with columns textrank_id_1 and textrank_id_2
 #' indicating for which combination of sentences we want to compute the Jaccard distance or the distance function as provided in \code{textrank_dist}.
 #' See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_candidates_lsh}}.
+#' @param max integer indicating to reduce the number of sentence to sentence combinations to compute.
+#' In case provided, we take only this max amount of rows from \code{textrank_candidates}
 #' @param options_pagerank a list of arguments passed on to \code{\link[igraph]{page_rank}}
-#' @param show_progress will show you the progress of the textrank_sentences function.
-#' See \code{\link[parallel]{makeCluster}} & \code{\link[pbapply]{pbapply}} for more.
+#' @param trace logical indicating to show the progress of the textrank_sentences function. Can also be a positive integer in which case it will print the progress for every \code{trace} number of sentences.
 #' @param ... arguments passed on to \code{textrank_dist}
 #' @seealso \code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}
 #' @return an object of class textrank_sentences
@@ -185,74 +186,77 @@ textrank_candidates_all <- function(x){
 #'                          textrank_candidates = candidates)
 #' summary(tr, n = 2)
 #' }
+#'
+#' ## You can also reduce the number of sentence combinations by sampling
+#' tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100, trace = 10)
+#' tr
+#' summary(tr, n = 2)
 textrank_sentences <- function(data, terminology,
-                     textrank_dist = textrank_jaccard,
-                     textrank_candidates = textrank_candidates_all(data$textrank_id),
-                     options_pagerank = list(directed = FALSE),
-                     show_progress = FALSE,
-                     ...){
+                               textrank_dist = textrank_jaccard,
+                               textrank_candidates = textrank_candidates_all(data$textrank_id),
+                               max = 1000,
+                               options_pagerank = list(directed = FALSE),
+                               trace = FALSE,
+                               ...){
+  textrank_id_1 <- textrank_id_2 <- textrank_id <- term <- NULL
+  stopifnot(trace >= 0)
+  stopifnot(inherits(data, "data.frame"))
+  stopifnot(inherits(terminology, "data.frame"))
+  if(sum(duplicated(data[[1]])) > 0){
+    stop("The first column of data should be a sentence identifier which should not contain any duplicates")
+  }
+  ## Make sure all datasets are data.tables and these are copies
+  data <- data.table::as.data.table(data)
+  data <- data.table::setnames(data, old = colnames(data)[1:2], new = c("textrank_id", "sentence"))
+  terminology <- data.table::as.data.table(terminology)
+  terminology <- data.table::setnames(terminology, old = colnames(terminology)[1:2], new = c("textrank_id", "term"))
+  terminology <- data.table::setkeyv(terminology, "textrank_id")
+  stopifnot(inherits(textrank_candidates, "data.frame"))
+  stopifnot(all(c("textrank_id_1", "textrank_id_2") %in% colnames(textrank_candidates)))
+  textrank_candidates <- data.table::as.data.table(textrank_candidates)
+  if(!missing(max)){
+    max <- min(nrow(textrank_candidates), max)
+    textrank_candidates <- textrank_candidates[sample.int(n = nrow(textrank_candidates), size = max), ]
+  }
+  textrank_candidates <- data.table::setkeyv(textrank_candidates, "textrank_id_1")
 
-  textrank_id <- NULL
-  term <- NULL
-  textrank_id_1 <- NULL
-  textrank_id_2 <- NULL
-  . <- NULL
-  weight <- NULL
-  N <- NULL
-  stopifnot(sum(duplicated(data[, 1])) == 0)
-
-
-  if(!data.table::is.data.table(data)) data <- data.table::as.data.table(data)
-  if(!data.table::is.data.table(terminology)) terminology <- data.table::as.data.table(terminology)
-  if(!data.table::is.data.table(textrank_candidates)) textrank_candidates <- data.table::as.data.table(textrank_candidates)
-
-  data.table::setnames(data, old = colnames(data)[1:2], new = c("textrank_id", "sentence"))
-  data.table::setnames(terminology, old = colnames(terminology)[1:2], new = c("textrank_id", "term"))
-
-  data.table::setkey(terminology, "textrank_id")
-  data.table::setkey(textrank_candidates, "textrank_id_1")
-
-
-  run_on_ids <- unique(textrank_candidates[, textrank_id_1])
-
-  sentence_dist <- function(IDx){
-
-    if(show_progress){
-      if(IDx == run_on_ids[1]) cat(IDx) else cat(paste(" -", IDx))
-      if(IDx == run_on_ids[length(run_on_ids)]) cat(fill = TRUE)
+  ## Calculate pairwise distances along all sentence combinations
+  sentence_dist <- function(i){
+    if(trace){
+      if((i %% trace) == 0){
+        cat(sprintf("%s Calculating on textrank_id_1 %s/%s", Sys.time(), i, sentence_ids_n_left), sep = "\n")
+      }
     }
-
-    termsX <- terminology[textrank_id == IDx, term]
-    on_IDs <- textrank_candidates[textrank_id_1 == IDx, textrank_id_2]
-
-    return(terminology[textrank_id %in% on_IDs,
-                .(weight = get("textrank_dist")(termsX, term, ...)), by = "textrank_id"][
-                  , .(textrank_id_1 = IDx, textrank_id_2 = textrank_id, weight)])
-
+    sentence_id_left <- sentence_ids_left[i]
+    id_right <- textrank_candidates[textrank_id_1 == sentence_id_left, textrank_id_2]
+    tokens_left <- terminology[textrank_id == sentence_id_left, term]
+    result <- terminology[textrank_id %in% id_right, list(weight = textrank_dist(tokens_left, term, ...)), by = list(textrank_id_2 = textrank_id)]
+    result <- result[, textrank_id_1 := sentence_id_left]
+    result
   }
-
-  if(show_progress){
-    cat(paste("Calculating a total of", length(run_on_ids), "distances between sentences"), fill = TRUE)
-    cat("Calculating distance: ")
+  sentence_ids_left <- unique(textrank_candidates$textrank_id_1)
+  sentence_ids_n_left <- length(sentence_ids_left)
+  if(trace){
+    cat(sprintf("%s Start calculating %s pairwise sentence comparisons", Sys.time(), nrow(textrank_candidates)), sep = "\n")
   }
-
-  sent2sent_distance <- lapply(run_on_ids, sentence_dist)
-
-
+  sent2sent_distance <- lapply(seq_along(sentence_ids_left), sentence_dist)
   sent2sent_distance <- data.table::rbindlist(sent2sent_distance)
+  sent2sent_distance <- data.table::setcolorder(sent2sent_distance, neworder = c("textrank_id_1", "textrank_id_2", "weight"))
+  sent2sent_distance <- data.table::setDF(sent2sent_distance)
 
   ## Calculate pagerank
-  if(show_progress) cat("Calculating pagerank", fill = TRUE)
+  if(trace){
+    cat(sprintf("%s Start calculating pagerank", Sys.time()), sep = "\n")
+  }
   pr <- igraph::graph_from_data_frame(sent2sent_distance, directed = FALSE)
   options_pagerank$graph <- pr
   pr <- do.call(igraph::page_rank, options_pagerank)
 
   ## Add pagerank to sentences for having it in the ouput
-  if(class(data$textrank_id) != "character") data[, textrank_id := as.character(textrank_id)]
-  data.table::setkey(data, "textrank_id")
-
+  data <- data.table::setDF(data)
   data <- merge(data,
-                data.frame(textrank_id = names(pr$vector), textrank = as.numeric(pr$vector), stringsAsFactors = FALSE),
+                data.frame(textrank_id = names(pr$vector),
+                           textrank = as.numeric(pr$vector), stringsAsFactors = FALSE),
                 by = "textrank_id", all.x=TRUE, all.y=FALSE, sort = FALSE, suffixes = c("sent.", ""))
 
   result <- list(

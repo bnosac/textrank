@@ -1,3 +1,7 @@
+# CHANGES IN textrank VERSION 0.3.1
+
+- Speedup textrank_sentences (thanks to @emillykkejensen)
+
 # CHANGES IN textrank VERSION 0.3.0
 
 - Speedup textrank_candidates_all (thanks to @emillykkejensen)
