@@ -1,7 +1,7 @@
 Package: textrank
 Type: Package
 Title: Summarize Text by Ranking Sentences and Finding Keywords
-Version: 0.3.0
+Version: 0.3.1
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Author: Jan Wijffels [aut, cre, cph], BNOSAC [cph]
 Authors@R: c(person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be'), person('BNOSAC', role = 'cph'))
@@ -13,5 +13,5 @@ URL: https://github.com/bnosac/textrank
 Encoding: UTF-8
 Imports: utils, data.table (>= 1.9.6), igraph, digest
 Suggests: textreuse, knitr, udpipe (>= 0.2)
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 VignetteBuilder: knitr

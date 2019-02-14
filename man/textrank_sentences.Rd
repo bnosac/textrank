@@ -6,7 +6,8 @@
 \usage{
 textrank_sentences(data, terminology, textrank_dist = textrank_jaccard,
   textrank_candidates = textrank_candidates_all(data$textrank_id),
-  max = 1000, options_pagerank = list(directed = FALSE), ...)
+  max = 1000, options_pagerank = list(directed = FALSE), trace = FALSE,
+  ...)
 }
 \arguments{
 \item{data}{a data.frame with 1 row per sentence where the first column
@@ -31,6 +32,8 @@ See for example \code{\link{textrank_candidates_all}} or \code{\link{textrank_ca
 In case provided, we take only this max amount of rows from \code{textrank_candidates}}
 
 \item{options_pagerank}{a list of arguments passed on to \code{\link[igraph]{page_rank}}}
+
+\item{trace}{logical indicating to show the progress of the textrank_sentences function. Can also be a positive integer in which case it will print the progress for every \code{trace} number of sentences.}
 
 \item{...}{arguments passed on to \code{textrank_dist}}
 }
@@ -84,8 +87,9 @@ tr <- textrank_sentences(data = sentences, terminology = terminology,
                          textrank_candidates = candidates)
 summary(tr, n = 2)
 }
+
 ## You can also reduce the number of sentence combinations by sampling
-tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
+tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100, trace = 10)
 tr
 summary(tr, n = 2)
 }
