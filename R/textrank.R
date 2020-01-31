@@ -59,17 +59,33 @@ textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
   if(length(examplehash) %% rows != 0) {
     stop(sprintf("the number of hashes (%s) should be a multiple of bands (%s)", length(examplehash), bands))
   }
-  hash_bands <- unlist(future.apply::future_lapply(seq_len(bands), FUN=function(i) rep(i, times = rows)))
+  if('future.apply' %in% installed.packages()[,1]){
+    hash_bands <- unlist(future.apply::future_lapply(seq_len(bands), FUN=function(i) rep(i, times = rows)))
+  } else {
+    hash_bands <- unlist(lapply(seq_len(bands), FUN=function(i) rep(i, times = rows)))
+  }
+
 
   sentence_to_bucket <- split(x, sentence_id)
-  sentence_to_bucket <- future.apply::future_mapply(sentence_id = names(sentence_to_bucket), sentence_to_bucket, FUN=function(sentence_id, words){
-    buckets <- data.table(sentence_id = sentence_id,
-                          hash = minhashFUN(words),
-                          band = hash_bands)
-    buckets <- buckets[, list(bucket = digest::digest(object = list(hashes = hash, b = band[1]))), by = list(sentence_id, band)]
-    buckets <- buckets[, c("sentence_id", "bucket"), with = FALSE]
-    buckets
-  }, SIMPLIFY = FALSE)
+  if('future.apply' %in% installed.packages()[,1]){
+    sentence_to_bucket <- future.apply::future_mapply(sentence_id = names(sentence_to_bucket), sentence_to_bucket, FUN=function(sentence_id, words){
+      buckets <- data.table(sentence_id = sentence_id,
+                            hash = minhashFUN(words),
+                            band = hash_bands)
+      buckets <- buckets[, list(bucket = digest::digest(object = list(hashes = hash, b = band[1]))), by = list(sentence_id, band)]
+      buckets <- buckets[, c("sentence_id", "bucket"), with = FALSE]
+      buckets
+    }, SIMPLIFY = FALSE)
+  } else {
+    sentence_to_bucket <- mapply(sentence_id = names(sentence_to_bucket), sentence_to_bucket, FUN=function(sentence_id, words){
+      buckets <- data.table(sentence_id = sentence_id,
+                            hash = minhashFUN(words),
+                            band = hash_bands)
+      buckets <- buckets[, list(bucket = digest::digest(object = list(hashes = hash, b = band[1]))), by = list(sentence_id, band)]
+      buckets <- buckets[, c("sentence_id", "bucket"), with = FALSE]
+      buckets
+    }, SIMPLIFY = FALSE)
+  }
   sentence_to_bucket <- data.table::rbindlist(sentence_to_bucket)
 
   candidates <- merge(sentence_to_bucket, sentence_to_bucket, by = "bucket", suffixes = c(".left", ".right"), all.x=TRUE, all.y=FALSE)
@@ -103,14 +119,28 @@ textrank_candidates_all <- function(x){
   stopifnot(x_length > 1)
   if(x_length < 200){
     candidates <- utils::combn(x = x, m = 2, simplify = FALSE)
-    candidates <- future.apply::future_lapply(candidates, FUN=function(x){
-      list(textrank_id_1 = x[1],
-           textrank_id_2 = x[2])
-    })
-  }else{
-    candidates <- future.apply::future_lapply(seq(x)[-x_length], function(i){
-      data.table::data.table(textrank_id_1 = x[i], textrank_id_2 = x[(i+1L):x_length])
-    })
+    if('future.apply' %in% installed.packages()[,1]){
+      candidates <- future.apply::future_lapply(candidates, FUN=function(x){
+        list(textrank_id_1 = x[1],
+             textrank_id_2 = x[2])
+      })
+    } else {
+      candidates <- lapply(candidates, FUN=function(x){
+        list(textrank_id_1 = x[1],
+             textrank_id_2 = x[2])
+      })
+    }
+  } else {
+    if('future.apply' %in% installed.packages()[,1]){
+      candidates <- future.apply::future_lapply(seq(x)[-x_length], function(i){
+        data.table::data.table(textrank_id_1 = x[i], textrank_id_2 = x[(i+1L):x_length])
+      })
+    } else {
+      candidates <- lapply(seq(x)[-x_length], function(i){
+        data.table::data.table(textrank_id_1 = x[i], textrank_id_2 = x[(i+1L):x_length])
+      })
+    }
+
   }
   candidates <- data.table::rbindlist(candidates)
   candidates <- setDF(candidates)
@@ -226,9 +256,16 @@ textrank_sentences <- function(data, terminology,
     max <- min(nrow(sent2sent_distance), max)
     sent2sent_distance <- sent2sent_distance[sample.int(n = nrow(sent2sent_distance), size = max), ]
   }
-  sent2sent_distance <- future.apply::future_mapply(id1 = sent2sent_distance$textrank_id_1,
-                               id2 = sent2sent_distance$textrank_id_2, FUN = sentence_dist, MoreArgs = list(distFUN = textrank_dist, ...),
-                               SIMPLIFY = FALSE)
+  if('future.apply' %in% installed.packages()[,1]){
+    sent2sent_distance <- future.apply::future_mapply(id1 = sent2sent_distance$textrank_id_1,
+                                                      id2 = sent2sent_distance$textrank_id_2, FUN = sentence_dist, MoreArgs = list(distFUN = textrank_dist, ...),
+                                                      SIMPLIFY = FALSE)
+  } else {
+    sent2sent_distance <- mapply(id1 = sent2sent_distance$textrank_id_1,
+                                 id2 = sent2sent_distance$textrank_id_2, FUN = sentence_dist, MoreArgs = list(distFUN = textrank_dist, ...),
+                                 SIMPLIFY = FALSE)
+  }
+
   sent2sent_distance <- data.table::rbindlist(sent2sent_distance)
 
   ## Calculate pagerank
@@ -389,11 +426,20 @@ textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_m
     keywordcombinations$ngram <- ifelse(stop_already, keywordcombinations$ngram, keywordcombinations$ngram + 1L)
     output_per_ngram[[i]] <- keywordcombinations[keywordcombinations$ngram == i, ]
   }
-  output_per_ngram <- future.apply::future_lapply(output_per_ngram, FUN=function(x){
-    x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
-    x <- x[order(freq, decreasing=TRUE), ]
-    x
-  })
+  if('future.apply' %in% installed.packages()[,1]){
+    output_per_ngram <- future.apply::future_lapply(output_per_ngram, FUN=function(x){
+      x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
+      x <- x[order(freq, decreasing=TRUE), ]
+      x
+    })
+  } else {
+    output_per_ngram <- lapply(output_per_ngram, FUN=function(x){
+      x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
+      x <- x[order(freq, decreasing=TRUE), ]
+      x
+    })
+  }
+
   output_per_ngram <- data.table::rbindlist(output_per_ngram)
   output_per_ngram <- setDF(output_per_ngram)
 
