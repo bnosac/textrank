@@ -12,6 +12,6 @@ License: MPL-2.0
 URL: https://github.com/bnosac/textrank
 Encoding: UTF-8
 Imports: utils, data.table (>= 1.9.6), igraph, digest
-Suggests: textreuse, knitr, udpipe (>= 0.2)
-RoxygenNote: 6.0.1
+Suggests: textreuse, knitr, udpipe (>= 0.2), future.apply
+RoxygenNote: 7.0.2
 VignetteBuilder: knitr

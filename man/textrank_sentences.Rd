@@ -4,9 +4,15 @@
 \alias{textrank_sentences}
 \title{Textrank - extract relevant sentences}
 \usage{
-textrank_sentences(data, terminology, textrank_dist = textrank_jaccard,
+textrank_sentences(
+  data,
+  terminology,
+  textrank_dist = textrank_jaccard,
   textrank_candidates = textrank_candidates_all(data$textrank_id),
-  max = 1000, options_pagerank = list(directed = FALSE), ...)
+  max = 1000,
+  options_pagerank = list(directed = FALSE),
+  ...
+)
 }
 \arguments{
 \item{data}{a data.frame with 1 row per sentence where the first column

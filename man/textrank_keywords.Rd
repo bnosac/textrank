@@ -4,8 +4,13 @@
 \alias{textrank_keywords}
 \title{Textrank - extract relevant keywords}
 \usage{
-textrank_keywords(x, relevant = rep(TRUE, length(x)), p = 1/3,
-  ngram_max = 5, sep = "-")
+textrank_keywords(
+  x,
+  relevant = rep(TRUE, length(x)),
+  p = 1/3,
+  ngram_max = 5,
+  sep = "-"
+)
 }
 \arguments{
 \item{x}{a character vector of words.}
