@@ -4,8 +4,7 @@
 \alias{summary.textrank_sentences}
 \title{Extract the most important sentences which were identified with textrank_sentences}
 \usage{
-\method{summary}{textrank_sentences}(object, n = 3,
-  keep.sentence.order = FALSE, ...)
+\method{summary}{textrank_sentences}(object, n = 3, keep.sentence.order = FALSE, ...)
 }
 \arguments{
 \item{object}{an object of class textrank_sentences}
