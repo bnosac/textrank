@@ -59,6 +59,8 @@ textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
   if(length(examplehash) %% rows != 0) {
     stop(sprintf("the number of hashes (%s) should be a multiple of bands (%s)", length(examplehash), bands))
   }
+
+  requireNamespace('utils', quietly = T)
   if('future.apply' %in% installed.packages()[,1]){
     hash_bands <- unlist(future.apply::future_lapply(seq_len(bands), FUN=function(i) rep(i, times = rows)))
   } else {
@@ -117,6 +119,7 @@ textrank_candidates_all <- function(x){
   x <- setdiff(x, NA)
   x_length <- length(x)
   stopifnot(x_length > 1)
+  requireNamespace('utils', quietly = T)
   if(x_length < 200){
     candidates <- utils::combn(x = x, m = 2, simplify = FALSE)
     if('future.apply' %in% installed.packages()[,1]){
@@ -225,6 +228,7 @@ textrank_sentences <- function(data, terminology,
                      max = 1000,
                      options_pagerank = list(directed = FALSE),
                      ...){
+
   textrank_id <- NULL
 
   stopifnot(sum(duplicated(data[, 1])) == 0)
@@ -256,6 +260,8 @@ textrank_sentences <- function(data, terminology,
     max <- min(nrow(sent2sent_distance), max)
     sent2sent_distance <- sent2sent_distance[sample.int(n = nrow(sent2sent_distance), size = max), ]
   }
+
+  requireNamespace('utils', quietly = T)
   if('future.apply' %in% installed.packages()[,1]){
     sent2sent_distance <- future.apply::future_mapply(id1 = sent2sent_distance$textrank_id_1,
                                                       id2 = sent2sent_distance$textrank_id_2, FUN = sentence_dist, MoreArgs = list(distFUN = textrank_dist, ...),
@@ -426,6 +432,8 @@ textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_m
     keywordcombinations$ngram <- ifelse(stop_already, keywordcombinations$ngram, keywordcombinations$ngram + 1L)
     output_per_ngram[[i]] <- keywordcombinations[keywordcombinations$ngram == i, ]
   }
+
+  requireNamespace('utils', quietly = T)
   if('future.apply' %in% installed.packages()[,1]){
     output_per_ngram <- future.apply::future_lapply(output_per_ngram, FUN=function(x){
       x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
