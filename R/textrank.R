@@ -49,6 +49,7 @@ textrank_jaccard <- function(termsa, termsb){
 #'                          textrank_candidates = candidates)
 #' summary(tr, n = 2)
 textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
+
   textrank_id_1 <- textrank_id_2 <- sentence_id.left <- sentence_id.right <- hash <- band <- NULL
 
   stopifnot(length(x) == length(sentence_id))
@@ -60,8 +61,7 @@ textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
     stop(sprintf("the number of hashes (%s) should be a multiple of bands (%s)", length(examplehash), bands))
   }
 
-  requireNamespace('utils', quietly = T)
-  if('future.apply' %in% utils::installed.packages()[,1]){
+  if(requireNamespace('future.apply', quietly = T)){
     hash_bands <- unlist(future.apply::future_lapply(seq_len(bands), FUN=function(i) rep(i, times = rows)))
   } else {
     hash_bands <- unlist(lapply(seq_len(bands), FUN=function(i) rep(i, times = rows)))
@@ -69,7 +69,7 @@ textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
 
 
   sentence_to_bucket <- split(x, sentence_id)
-  if('future.apply' %in% utils::installed.packages()[,1]){
+  if(requireNamespace('future.apply', quietly = T)){
     sentence_to_bucket <- future.apply::future_mapply(sentence_id = names(sentence_to_bucket), sentence_to_bucket, FUN=function(sentence_id, words){
       buckets <- data.table(sentence_id = sentence_id,
                             hash = minhashFUN(words),
@@ -119,10 +119,9 @@ textrank_candidates_all <- function(x){
   x <- setdiff(x, NA)
   x_length <- length(x)
   stopifnot(x_length > 1)
-  requireNamespace('utils', quietly = T)
   if(x_length < 200){
     candidates <- utils::combn(x = x, m = 2, simplify = FALSE)
-    if('future.apply' %in% utils::installed.packages()[,1]){
+    if(requireNamespace('future.apply', quietly = T)){
       candidates <- future.apply::future_lapply(candidates, FUN=function(x){
         list(textrank_id_1 = x[1],
              textrank_id_2 = x[2])
@@ -134,7 +133,7 @@ textrank_candidates_all <- function(x){
       })
     }
   } else {
-    if('future.apply' %in% utils::installed.packages()[,1]){
+    if(requireNamespace('future.apply', quietly = T)){
       candidates <- future.apply::future_lapply(seq(x)[-x_length], function(i){
         data.table::data.table(textrank_id_1 = x[i], textrank_id_2 = x[(i+1L):x_length])
       })
@@ -229,6 +228,7 @@ textrank_sentences <- function(data, terminology,
                      options_pagerank = list(directed = FALSE),
                      ...){
 
+
   textrank_id <- NULL
 
   stopifnot(sum(duplicated(data[, 1])) == 0)
@@ -261,8 +261,7 @@ textrank_sentences <- function(data, terminology,
     sent2sent_distance <- sent2sent_distance[sample.int(n = nrow(sent2sent_distance), size = max), ]
   }
 
-  requireNamespace('utils', quietly = T)
-  if('future.apply' %in% utils::installed.packages()[,1]){
+  if(requireNamespace('future.apply', quietly = T)){
     sent2sent_distance <- future.apply::future_mapply(id1 = sent2sent_distance$textrank_id_1,
                                                       id2 = sent2sent_distance$textrank_id_2, FUN = sentence_dist, MoreArgs = list(distFUN = textrank_dist, ...),
                                                       SIMPLIFY = FALSE)
@@ -433,8 +432,8 @@ textrank_keywords <- function(x, relevant=rep(TRUE, length(x)), p = 1/3, ngram_m
     output_per_ngram[[i]] <- keywordcombinations[keywordcombinations$ngram == i, ]
   }
 
-  requireNamespace('utils', quietly = T)
-  if('future.apply' %in% utils::installed.packages()[,1]){
+
+  if(requireNamespace('future.apply', quietly = T)){
     output_per_ngram <- future.apply::future_lapply(output_per_ngram, FUN=function(x){
       x <- x[!is.na(keyword), list(freq = .N), by = list(keyword, ngram)]
       x <- x[order(freq, decreasing=TRUE), ]
