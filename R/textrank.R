@@ -32,6 +32,9 @@ textrank_jaccard <- function(termsa, termsb){
 #' @export
 #' @seealso \code{\link{textrank_sentences}}
 #' @examples
+#' \dontshow{if(require(udpipe) & require(textreuse))
+#' \{
+#' }
 #' library(textreuse)
 #' library(udpipe)
 #' lsh_probability(h = 1000, b = 500, s = 0.1) # A 10 percent Jaccard overlap will be detected well
@@ -48,6 +51,10 @@ textrank_jaccard <- function(termsa, termsb){
 #' tr <- textrank_sentences(data = sentences, terminology = terminology,
 #'                          textrank_candidates = candidates)
 #' summary(tr, n = 2)
+#' \dontshow{
+#' \}
+#' # End of main if statement running only if the required packages are installed
+#' }
 textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
   textrank_id_1 <- textrank_id_2 <- sentence_id.left <- sentence_id.right <- hash <- band <- NULL
 
@@ -91,11 +98,18 @@ textrank_candidates_lsh <- function(x, sentence_id, minhashFUN, bands){
 #' @export
 #' @seealso \code{\link{textrank_sentences}}
 #' @examples
+#' \dontshow{if(require(udpipe))
+#' \{
+#' }
 #' library(udpipe)
 #' data(joboffer)
 #' joboffer$textrank_id <- unique_identifier(joboffer, c("doc_id", "paragraph_id", "sentence_id"))
 #' candidates <- textrank_candidates_all(unique(joboffer$textrank_id))
 #' head(candidates, 50)
+#' \dontshow{
+#' \}
+#' # End of main if statement running only if the required packages are installed
+#' }
 textrank_candidates_all <- function(x){
   x <- unique(x)
   x <- setdiff(x, NA)
@@ -161,6 +175,9 @@ textrank_candidates_all <- function(x){
 #' }
 #' @export
 #' @examples
+#' \dontshow{if(require(udpipe))
+#' \{
+#' }
 #' library(udpipe)
 #' data(joboffer)
 #' head(joboffer)
@@ -174,7 +191,10 @@ textrank_candidates_all <- function(x){
 #' tr <- textrank_sentences(data = sentences, terminology = terminology)
 #' summary(tr, n = 2)
 #' summary(tr, n = 5, keep.sentence.order = TRUE)
-#'
+#' \dontshow{
+#' \}
+#' # End of main if statement running only if the required packages are installed
+#' }
 #' \dontrun{
 #' ## Using minhash to reduce sentence combinations - relevant if you have a lot of sentences
 #' library(textreuse)

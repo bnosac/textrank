@@ -18,11 +18,18 @@ This data.frame can be used as input in the \code{\link{textrank_sentences}} alg
 Get all combinations of sentences
 }
 \examples{
+\dontshow{if(require(udpipe))
+\{
+}
 library(udpipe)
 data(joboffer)
 joboffer$textrank_id <- unique_identifier(joboffer, c("doc_id", "paragraph_id", "sentence_id"))
 candidates <- textrank_candidates_all(unique(joboffer$textrank_id))
 head(candidates, 50)
+\dontshow{
+\}
+# End of main if statement running only if the required packages are installed
+}
 }
 \seealso{
 \code{\link{textrank_sentences}}

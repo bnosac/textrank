@@ -1,3 +1,7 @@
+# CHANGES IN textrank VERSION 0.3.1
+
+- Make example conditionally on availability of udpipe
+
 # CHANGES IN textrank VERSION 0.3.0
 
 - Speedup textrank_candidates_all (thanks to @emillykkejensen)

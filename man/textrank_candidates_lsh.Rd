@@ -29,6 +29,9 @@ done by using \code{\link{textrank_candidates_all}}, we can reduce the combinati
 This function sets up the combinations of sentences which are in the same Minhash bucket.
 }
 \examples{
+\dontshow{if(require(udpipe) & require(textreuse))
+\{
+}
 library(textreuse)
 library(udpipe)
 lsh_probability(h = 1000, b = 500, s = 0.1) # A 10 percent Jaccard overlap will be detected well
@@ -45,6 +48,10 @@ head(candidates)
 tr <- textrank_sentences(data = sentences, terminology = terminology,
                          textrank_candidates = candidates)
 summary(tr, n = 2)
+\dontshow{
+\}
+# End of main if statement running only if the required packages are installed
+}
 }
 \seealso{
 \code{\link{textrank_sentences}}
