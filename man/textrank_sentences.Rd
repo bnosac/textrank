@@ -66,9 +66,7 @@ the calculation of the Jaccard distance to only sentence combinations which are 
 This is implemented in \code{\link{textrank_candidates_lsh}} and an example is show below.
 }
 \examples{
-\dontshow{if(require(udpipe))
-\{
-}
+\dontshow{if(require(udpipe)) \{ }
 library(udpipe)
 data(joboffer)
 head(joboffer)
@@ -82,10 +80,8 @@ head(terminology)
 tr <- textrank_sentences(data = sentences, terminology = terminology)
 summary(tr, n = 2)
 summary(tr, n = 5, keep.sentence.order = TRUE)
-\dontshow{
-\}
-# End of main if statement running only if the required packages are installed
-}
+\dontshow{\} # End of main if statement running only if the required packages are installed}
+
 \dontrun{
 ## Using minhash to reduce sentence combinations - relevant if you have a lot of sentences
 library(textreuse)
