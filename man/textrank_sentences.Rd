@@ -80,7 +80,6 @@ head(terminology)
 tr <- textrank_sentences(data = sentences, terminology = terminology)
 summary(tr, n = 2)
 summary(tr, n = 5, keep.sentence.order = TRUE)
-\dontshow{\} # End of main if statement running only if the required packages are installed}
 
 \dontrun{
 ## Using minhash to reduce sentence combinations - relevant if you have a lot of sentences
@@ -96,6 +95,7 @@ summary(tr, n = 2)
 tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
 tr
 summary(tr, n = 2)
+\dontshow{\} # End of main if statement running only if the required packages are installed}
 }
 \seealso{
 \code{\link[igraph]{page_rank}}, \code{\link{textrank_candidates_all}}, \code{\link{textrank_candidates_lsh}}, \code{\link{textrank_jaccard}}

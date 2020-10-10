@@ -179,7 +179,6 @@ textrank_candidates_all <- function(x){
 #' tr <- textrank_sentences(data = sentences, terminology = terminology)
 #' summary(tr, n = 2)
 #' summary(tr, n = 5, keep.sentence.order = TRUE)
-#' \dontshow{\} # End of main if statement running only if the required packages are installed}
 #'
 #' \dontrun{
 #' ## Using minhash to reduce sentence combinations - relevant if you have a lot of sentences
@@ -195,6 +194,7 @@ textrank_candidates_all <- function(x){
 #' tr <- textrank_sentences(data = sentences, terminology = terminology, max = 100)
 #' tr
 #' summary(tr, n = 2)
+#' \dontshow{\} # End of main if statement running only if the required packages are installed}
 textrank_sentences <- function(data, terminology,
                      textrank_dist = textrank_jaccard,
                      textrank_candidates = textrank_candidates_all(data$textrank_id),
